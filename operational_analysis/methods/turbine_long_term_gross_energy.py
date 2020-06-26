@@ -405,11 +405,12 @@ class TurbineLongTermGrossEnergy(object):
             for r in self._reanal: # Loop through reanalysis products
                 df = mod_dict[t, r]
                 # Consider wind speed, wind direction, and air density as features
-                mod_results[t, r] = functions.gam_3param(windspeed_column = df['windspeed_ms'],
-                                                         winddir_column = df['winddirection_deg'],
-                                                         airdens_column = df['rho_kgm-3'],
-                                                         power_column=df['energy_imputed']) 
-        
+#                mod_results[t, r] = functions.gam_3param(windspeed_column = df['windspeed_ms'],
+#                                                         winddir_column = df['winddirection_deg'],
+#                                                         airdens_column = df['rho_kgm-3'],
+#                                                         power_column=df['energy_imputed']) 
+                mod_results[t,r] = functions.gam(windspeed_column = df['windspeed_ms'],
+                                                  power_column=df['energy_imputed'])
     def apply_model_to_lt(self):
         """
         Apply model result to the long-term reanalysis data to calculate long-term
@@ -430,10 +431,10 @@ class TurbineLongTermGrossEnergy(object):
         for r in self._reanal: # Loop throuh reanalysis products
             daily_reanal = self._daily_reanal_dict[r]
             turb_gross[r] = pd.DataFrame(index = daily_reanal.index) # Set empty data frame to store results
-            X_long_term = daily_reanal['windspeed_ms'], daily_reanal['winddirection_deg'], daily_reanal['rho_kgm-3']
-            
+            #X_long_term = daily_reanal['windspeed_ms'], daily_reanal['winddirection_deg'], daily_reanal['rho_kgm-3']
+            X_long_term = daily_reanal['windspeed_ms']
             for t in self._turbs: # Loop through turbines
-                turb_gross[r].loc[:, t] = mod_results[t, r](*X_long_term) # Apply GAM fit to long-term reanalysis data
+                turb_gross[r].loc[:, t] = mod_results[t, r](X_long_term) # Apply GAM fit to long-term reanalysis data
                 turb_gross[r].loc[turb_gross[r][t] < 0, t] = 0
             turb_mo = turb_gross[r].resample('MS').sum() # Calculate monthly sums of energy from long-term estimate4
             turb_mo_avg = turb_mo.groupby(turb_mo.index.month).mean() # get average sum by calendar month
